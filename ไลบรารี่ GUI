@@ -1,0 +1,558 @@
+-- ============================================================
+-- ================== KINGV1 HUB GUI LIBRARY ====================
+-- ============================================================
+-- Reusable GUI System สำหรับ Roblox Scripts
+-- สามารถ require() ใช้ได้ในหลายโปรเจค
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+
+local KingV1Hub = {}
+KingV1Hub.__index = KingV1Hub
+
+-- ============================================================
+-- ================== DEFAULT THEME ===========================
+-- ============================================================
+KingV1Hub.DefaultTheme = {
+    MainBG      = Color3.fromRGB(13, 13, 18),
+    TopBar      = Color3.fromRGB(18, 18, 26),
+    Accent      = Color3.fromRGB(0, 200, 255),
+    AccentOff   = Color3.fromRGB(80, 80, 100),
+    Text        = Color3.fromRGB(230, 235, 255),
+    Secondary   = Color3.fromRGB(25, 25, 38),
+    Close       = Color3.fromRGB(220, 60, 60),
+    ToggleON    = Color3.fromRGB(0, 220, 120),
+    ToggleOFF   = Color3.fromRGB(55, 55, 75),
+    ToggleBall  = Color3.fromRGB(255, 255, 255),
+    Border      = Color3.fromRGB(0, 200, 255),
+    SubText     = Color3.fromRGB(120, 130, 160),
+    BtnHover    = Color3.fromRGB(30, 30, 48),
+    Warning     = Color3.fromRGB(255, 165, 0),
+    DropdownBG  = Color3.fromRGB(20, 20, 32),
+    DropdownItem= Color3.fromRGB(30, 30, 46),
+    DropdownHov = Color3.fromRGB(0, 200, 255),
+}
+
+-- ============================================================
+-- ================== CONSTRUCTOR =============================
+-- ============================================================
+function KingV1Hub.new(config)
+    config = config or {}
+    
+    local self = setmetatable({}, KingV1Hub)
+    
+    self.Title = config.Title or "KINGV1 HUB"
+    self.Subtitle = config.Subtitle or "v3.0"
+    self.Theme = config.Theme or KingV1Hub.DefaultTheme
+    self.MainSize = config.MainSize or UDim2.new(0, 620, 0, 460)
+    self.MinSize = config.MinSize or UDim2.new(0, 620, 0, 44)
+    
+    self.Visible = true
+    self.Minimized = false
+    self.TabPages = {}
+    self.ActiveTab = nil
+    self.Connections = {}
+    self.dragging = false
+    self.dragStart = nil
+    self.startPos = nil
+    
+    self:_CreateGui()
+    
+    return self
+end
+
+-- ============================================================
+-- ================== GUI CREATION =============================
+-- ============================================================
+function KingV1Hub:_CreateGui()
+    -- ScreenGui
+    self.ScreenGui = Instance.new("ScreenGui")
+    self.ScreenGui.Name = "KINGV1_HUB_" .. math.random(10000, 99999)
+    self.ScreenGui.ResetOnSpawn = false
+    self.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    self.ScreenGui.Parent = CoreGui
+    
+    -- Main Frame
+    self.MainFrame = Instance.new("Frame")
+    self.MainFrame.Name = "MainFrame"
+    self.MainFrame.Size = self.MainSize
+    self.MainFrame.Position = UDim2.new(0.5, -310, 0.5, -230)
+    self.MainFrame.BackgroundColor3 = self.Theme.MainBG
+    self.MainFrame.BorderSizePixel = 0
+    self.MainFrame.ClipsDescendants = true
+    self.MainFrame.BackgroundTransparency = 1
+    self.MainFrame.Parent = self.ScreenGui
+    Instance.new("UICorner", self.MainFrame).CornerRadius = UDim.new(0, 12)
+    
+    local MainStroke = Instance.new("UIStroke", self.MainFrame)
+    MainStroke.Color = self.Theme.Border
+    MainStroke.Thickness = 1.5
+    MainStroke.Transparency = 0.6
+    
+    self:_CreateTitleBar()
+    self:_CreateContentArea()
+    self:_SetupWindowControls()
+    self:_PlayOpenAnimation()
+end
+
+function KingV1Hub:_CreateTitleBar()
+    local TitleBar = Instance.new("Frame")
+    TitleBar.Name = "TitleBar"
+    TitleBar.Size = UDim2.new(1, 0, 0, 44)
+    TitleBar.BackgroundColor3 = self.Theme.TopBar
+    TitleBar.BorderSizePixel = 0
+    TitleBar.ZIndex = 2
+    TitleBar.Parent = self.MainFrame
+    Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 12)
+    self.TitleBar = TitleBar
+    
+    local TFix = Instance.new("Frame", TitleBar)
+    TFix.Size = UDim2.new(1, 0, 0, 10)
+    TFix.Position = UDim2.new(0, 0, 1, -10)
+    TFix.BackgroundColor3 = self.Theme.TopBar
+    TFix.BorderSizePixel = 0
+    TFix.ZIndex = 2
+    
+    local AccentLine = Instance.new("Frame", TitleBar)
+    AccentLine.Size = UDim2.new(1, 0, 0, 2)
+    AccentLine.Position = UDim2.new(0, 0, 1, 0)
+    AccentLine.BackgroundColor3 = self.Theme.Accent
+    AccentLine.BorderSizePixel = 0
+    AccentLine.ZIndex = 3
+    local AccGrad = Instance.new("UIGradient", AccentLine)
+    AccGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 100, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 220, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 100, 255)),
+    })
+    
+    local TitleDot = Instance.new("Frame", TitleBar)
+    TitleDot.Size = UDim2.new(0, 8, 0, 8)
+    TitleDot.Position = UDim2.new(0, 14, 0.5, -4)
+    TitleDot.BackgroundColor3 = self.Theme.Accent
+    TitleDot.BorderSizePixel = 0
+    TitleDot.ZIndex = 3
+    Instance.new("UICorner", TitleDot).CornerRadius = UDim.new(1, 0)
+    
+    local TitleText = Instance.new("TextLabel", TitleBar)
+    TitleText.Text = self.Title
+    TitleText.Size = UDim2.new(1, -140, 1, 0)
+    TitleText.Position = UDim2.new(0, 28, 0, 0)
+    TitleText.BackgroundTransparency = 1
+    TitleText.TextColor3 = self.Theme.Text
+    TitleText.Font = Enum.Font.GothamBold
+    TitleText.TextSize = 14
+    TitleText.TextXAlignment = Enum.TextXAlignment.Left
+    TitleText.ZIndex = 3
+    
+    local SubTitleText = Instance.new("TextLabel", TitleBar)
+    SubTitleText.Text = self.Subtitle
+    SubTitleText.Size = UDim2.new(1, -140, 1, 0)
+    SubTitleText.Position = UDim2.new(0, 28, 0, 14)
+    SubTitleText.BackgroundTransparency = 1
+    SubTitleText.TextColor3 = self.Theme.SubText
+    SubTitleText.Font = Enum.Font.Gotham
+    SubTitleText.TextSize = 10
+    SubTitleText.TextXAlignment = Enum.TextXAlignment.Left
+    SubTitleText.ZIndex = 3
+    
+    local MinBtn = Instance.new("TextButton", TitleBar)
+    MinBtn.Text = "−"
+    MinBtn.Size = UDim2.new(0, 32, 0, 32)
+    MinBtn.Position = UDim2.new(1, -76, 0.5, -16)
+    MinBtn.BackgroundColor3 = self.Theme.Secondary
+    MinBtn.TextColor3 = self.Theme.Text
+    MinBtn.Font = Enum.Font.GothamBold
+    MinBtn.TextSize = 18
+    MinBtn.BorderSizePixel = 0
+    MinBtn.ZIndex = 4
+    Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 8)
+    self.MinBtn = MinBtn
+    
+    local CloseBtn = Instance.new("TextButton", TitleBar)
+    CloseBtn.Text = "✕"
+    CloseBtn.Size = UDim2.new(0, 32, 0, 32)
+    CloseBtn.Position = UDim2.new(1, -38, 0.5, -16)
+    CloseBtn.BackgroundColor3 = self.Theme.Close
+    CloseBtn.TextColor3 = self.Theme.Text
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.TextSize = 13
+    CloseBtn.BorderSizePixel = 0
+    CloseBtn.ZIndex = 4
+    Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 8)
+    self.CloseBtn = CloseBtn
+end
+
+function KingV1Hub:_CreateContentArea()
+    local ContentFrame = Instance.new("Frame", self.MainFrame)
+    ContentFrame.Name = "ContentFrame"
+    ContentFrame.Size = UDim2.new(1, 0, 1, -46)
+    ContentFrame.Position = UDim2.new(0, 0, 0, 46)
+    ContentFrame.BackgroundTransparency = 1
+    ContentFrame.ClipsDescendants = true
+    self.ContentFrame = ContentFrame
+    
+    -- Tab Bar
+    local TabBar = Instance.new("Frame", ContentFrame)
+    TabBar.Name = "TabBar"
+    TabBar.Size = UDim2.new(0, 120, 1, -10)
+    TabBar.Position = UDim2.new(0, 6, 0, 5)
+    TabBar.BackgroundColor3 = self.Theme.Secondary
+    TabBar.BorderSizePixel = 0
+    Instance.new("UICorner", TabBar).CornerRadius = UDim.new(0, 10)
+    local TabList = Instance.new("UIListLayout", TabBar)
+    TabList.Padding = UDim.new(0, 3)
+    TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    local TabPad = Instance.new("UIPadding", TabBar)
+    TabPad.PaddingTop = UDim.new(0, 8)
+    TabPad.PaddingLeft = UDim.new(0, 5)
+    TabPad.PaddingRight = UDim.new(0, 5)
+    self.TabBar = TabBar
+    
+    -- Panel Frame
+    local PanelFrame = Instance.new("Frame", ContentFrame)
+    PanelFrame.Name = "PanelFrame"
+    PanelFrame.Size = UDim2.new(1, -136, 1, -10)
+    PanelFrame.Position = UDim2.new(0, 130, 0, 5)
+    PanelFrame.BackgroundColor3 = self.Theme.Secondary
+    PanelFrame.BorderSizePixel = 0
+    Instance.new("UICorner", PanelFrame).CornerRadius = UDim.new(0, 10)
+    
+    local PanelContainer = Instance.new("Frame", PanelFrame)
+    PanelContainer.Name = "PanelContainer"
+    PanelContainer.Size = UDim2.new(1, -4, 1, -4)
+    PanelContainer.Position = UDim2.new(0, 2, 0, 2)
+    PanelContainer.BackgroundTransparency = 1
+    PanelContainer.ClipsDescendants = true
+    self.PanelContainer = PanelContainer
+end
+
+-- ============================================================
+-- ================== TAB SYSTEM ==============================
+-- ============================================================
+function KingV1Hub:CreateTab(name, icon)
+    local btn = Instance.new("TextButton")
+    btn.Text = (icon and (icon .. "  ") or "") .. name
+    btn.Size = UDim2.new(1, 0, 0, 32)
+    btn.BackgroundColor3 = self.Theme.MainBG
+    btn.TextColor3 = self.Theme.SubText
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 11
+    btn.BorderSizePixel = 0
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.ZIndex = 2
+    btn.Parent = self.TabBar
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 7)
+    local BtnPad = Instance.new("UIPadding", btn)
+    BtnPad.PaddingLeft = UDim.new(0, 8)
+    
+    local page = Instance.new("ScrollingFrame")
+    page.Name = "Page_" .. name
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.BackgroundTransparency = 1
+    page.BorderSizePixel = 0
+    page.Visible = false
+    page.ScrollBarThickness = 3
+    page.ScrollBarImageColor3 = self.Theme.Accent
+    page.ScrollingDirection = Enum.ScrollingDirection.Y
+    page.CanvasSize = UDim2.new(0, 0, 0, 0)
+    page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    page.Parent = self.PanelContainer
+    
+    local pageList = Instance.new("UIListLayout", page)
+    pageList.Padding = UDim.new(0, 6)
+    pageList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    pageList.SortOrder = Enum.SortOrder.LayoutOrder
+    local pagePad = Instance.new("UIPadding", page)
+    pagePad.PaddingTop = UDim.new(0, 8)
+    pagePad.PaddingBottom = UDim.new(0, 12)
+    pagePad.PaddingLeft = UDim.new(0, 8)
+    pagePad.PaddingRight = UDim.new(0, 8)
+    
+    self.TabPages[name] = { Button = btn, Page = page }
+    
+    table.insert(self.Connections, btn.MouseButton1Click:Connect(function()
+        self:_SelectTab(name)
+    end))
+    
+    return page
+end
+
+function KingV1Hub:_SelectTab(name)
+    for tabName, t in pairs(self.TabPages) do
+        t.Button.BackgroundColor3 = self.Theme.MainBG
+        t.Button.TextColor3 = self.Theme.SubText
+        t.Page.Visible = false
+    end
+    
+    local tab = self.TabPages[name]
+    if tab then
+        tab.Button.BackgroundColor3 = self.Theme.TopBar
+        tab.Button.TextColor3 = self.Theme.Accent
+        tab.Page.Visible = true
+        self.ActiveTab = name
+        tab.Page.Position = UDim2.new(0.04, 0, 0, 0)
+        tab.Page:TweenPosition(UDim2.new(0, 0, 0, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.18, true)
+    end
+end
+
+-- ============================================================
+-- ================== UI COMPONENTS ===========================
+-- ============================================================
+
+function KingV1Hub:CreateToggle(parent, labelText, description, defaultVal, callback)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 50)
+    row.BackgroundColor3 = self.Theme.MainBG
+    row.BorderSizePixel = 0
+    row.Parent = parent
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 9)
+    local RowStroke = Instance.new("UIStroke", row)
+    RowStroke.Color = self.Theme.Border
+    RowStroke.Thickness = 1
+    RowStroke.Transparency = 0.85
+    
+    local lbl = Instance.new("TextLabel", row)
+    lbl.Text = labelText
+    lbl.Size = UDim2.new(1, -68, 0, 20)
+    lbl.Position = UDim2.new(0, 10, 0, 7)
+    lbl.BackgroundTransparency = 1
+    lbl.TextColor3 = self.Theme.Text
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    
+    if description then
+        local desc = Instance.new("TextLabel", row)
+        desc.Text = description
+        desc.Size = UDim2.new(1, -68, 0, 14)
+        desc.Position = UDim2.new(0, 10, 0, 28)
+        desc.BackgroundTransparency = 1
+        desc.TextColor3 = self.Theme.SubText
+        desc.Font = Enum.Font.Gotham
+        desc.TextSize = 10
+        desc.TextXAlignment = Enum.TextXAlignment.Left
+    end
+    
+    local track = Instance.new("Frame", row)
+    track.Size = UDim2.new(0, 44, 0, 22)
+    track.Position = UDim2.new(1, -56, 0.5, -11)
+    track.BackgroundColor3 = defaultVal and self.Theme.ToggleON or self.Theme.ToggleOFF
+    track.BorderSizePixel = 0
+    Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
+    
+    local ball = Instance.new("Frame", track)
+    ball.Size = UDim2.new(0, 16, 0, 16)
+    ball.Position = defaultVal and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
+    ball.BackgroundColor3 = self.Theme.ToggleBall
+    ball.BorderSizePixel = 0
+    ball.ZIndex = 2
+    Instance.new("UICorner", ball).CornerRadius = UDim.new(1, 0)
+    local ballGlow = Instance.new("UIStroke", ball)
+    ballGlow.Color = self.Theme.ToggleON
+    ballGlow.Thickness = 2
+    ballGlow.Transparency = defaultVal and 0.3 or 1
+    
+    local isOn = defaultVal
+    local clickBtn = Instance.new("TextButton", row)
+    clickBtn.Size = UDim2.new(1, 0, 1, 0)
+    clickBtn.BackgroundTransparency = 1
+    clickBtn.Text = ""
+    clickBtn.ZIndex = 5
+    
+    table.insert(self.Connections, clickBtn.MouseButton1Click:Connect(function()
+        isOn = not isOn
+        local ti = TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+        if isOn then
+            TweenService:Create(track, ti, { BackgroundColor3 = self.Theme.ToggleON }):Play()
+            TweenService:Create(ball, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = UDim2.new(1, -19, 0.5, -8) }):Play()
+            TweenService:Create(ballGlow, ti, { Transparency = 0.3 }):Play()
+            TweenService:Create(RowStroke, ti, { Color = self.Theme.ToggleON, Transparency = 0.5 }):Play()
+        else
+            TweenService:Create(track, ti, { BackgroundColor3 = self.Theme.ToggleOFF }):Play()
+            TweenService:Create(ball, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = UDim2.new(0, 3, 0.5, -8) }):Play()
+            TweenService:Create(ballGlow, ti, { Transparency = 1 }):Play()
+            TweenService:Create(RowStroke, ti, { Color = self.Theme.Border, Transparency = 0.85 }):Play()
+        end
+        task.spawn(function()
+            TweenService:Create(ball, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.new(0, 20, 0, 20) }):Play()
+            task.wait(0.1)
+            TweenService:Create(ball, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.new(0, 16, 0, 16) }):Play()
+        end)
+        if callback then callback(isOn) end
+    end))
+    
+    return row
+end
+
+function KingV1Hub:CreateButton(parent, text, callback)
+    local btn = Instance.new("TextButton", parent)
+    btn.Text = text
+    btn.Size = UDim2.new(1, 0, 0, 34)
+    btn.BackgroundColor3 = self.Theme.TopBar
+    btn.TextColor3 = self.Theme.Accent
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 12
+    btn.BorderSizePixel = 0
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    local bs = Instance.new("UIStroke", btn)
+    bs.Color = self.Theme.Accent
+    bs.Thickness = 1
+    bs.Transparency = 0.7
+    
+    table.insert(self.Connections, btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.12), { BackgroundColor3 = self.Theme.BtnHover }):Play()
+    end))
+    
+    table.insert(self.Connections, btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.12), { BackgroundColor3 = self.Theme.TopBar }):Play()
+    end))
+    
+    table.insert(self.Connections, btn.MouseButton1Click:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.08), { BackgroundColor3 = self.Theme.Secondary }):Play()
+        task.delay(0.1, function()
+            TweenService:Create(btn, TweenInfo.new(0.1), { BackgroundColor3 = self.Theme.TopBar }):Play()
+        end)
+        if callback then callback() end
+    end))
+    
+    return btn
+end
+
+function KingV1Hub:CreateSectionHeader(parent, text)
+    local header = Instance.new("Frame", parent)
+    header.Size = UDim2.new(1, 0, 0, 22)
+    header.BackgroundTransparency = 1
+    local line = Instance.new("Frame", header)
+    line.Size = UDim2.new(1, 0, 0, 1)
+    line.Position = UDim2.new(0, 0, 0.5, 0)
+    line.BackgroundColor3 = self.Theme.Accent
+    line.BackgroundTransparency = 0.7
+    line.BorderSizePixel = 0
+    local lbl = Instance.new("TextLabel", header)
+    lbl.Text = "  " .. text .. "  "
+    lbl.Size = UDim2.new(0, 0, 1, 0)
+    lbl.AutomaticSize = Enum.AutomaticSize.X
+    lbl.Position = UDim2.new(0, 10, 0, 0)
+    lbl.BackgroundColor3 = self.Theme.Secondary
+    lbl.TextColor3 = self.Theme.Accent
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 10
+    lbl.ZIndex = 2
+    return header
+end
+
+-- ============================================================
+-- ================== WINDOW CONTROLS =========================
+-- ============================================================
+function KingV1Hub:_SetupWindowControls()
+    -- Close Button
+    table.insert(self.Connections, self.CloseBtn.MouseButton1Click:Connect(function()
+        self:Shutdown()
+    end))
+    
+    -- Minimize Button
+    table.insert(self.Connections, self.MinBtn.MouseButton1Click:Connect(function()
+        self.Minimized = not self.Minimized
+        local sz = self.Minimized and self.MinSize or self.MainSize
+        TweenService:Create(self.MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { Size = sz }):Play()
+        self.MinBtn.Text = self.Minimized and "+" or "−"
+    end))
+    
+    -- Drag Functionality
+    table.insert(self.Connections, self.TitleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            self.dragging = true
+            self.dragStart = input.Position
+            self.startPos = self.MainFrame.Position
+        end
+    end))
+    
+    table.insert(self.Connections, UserInputService.InputChanged:Connect(function(input)
+        if self.dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - self.dragStart
+            local sp = self.startPos
+            self.MainFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y)
+        end
+    end))
+    
+    table.insert(self.Connections, UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            self.dragging = false
+        end
+    end))
+    
+    -- Toggle Visibility with INSERT key
+    table.insert(self.Connections, UserInputService.InputBegan:Connect(function(input, processed)
+        if not processed and input.KeyCode == Enum.KeyCode.Insert then
+            self.Visible = not self.Visible
+            if self.Visible then
+                self.MainFrame.Visible = true
+                TweenService:Create(self.MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                    BackgroundTransparency = 0,
+                    Size = self.Minimized and self.MinSize or self.MainSize
+                }):Play()
+            else
+                TweenService:Create(self.MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { BackgroundTransparency = 1 }):Play()
+                task.delay(0.22, function()
+                    if self.MainFrame and self.MainFrame.Parent then
+                        self.MainFrame.Visible = false
+                    end
+                end)
+            end
+        end
+    end))
+end
+
+-- ============================================================
+-- ================== ANIMATIONS ==============================
+-- ============================================================
+function KingV1Hub:_PlayOpenAnimation()
+    self.MainFrame.Size = UDim2.new(0, 620, 0, 0)
+    self.MainFrame.BackgroundTransparency = 1
+    self.MainFrame.Visible = true
+    task.wait(0.1)
+    TweenService:Create(self.MainFrame, TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = self.MainSize,
+        BackgroundTransparency = 0
+    }):Play()
+end
+
+-- ============================================================
+-- ================== PUBLIC METHODS ==========================
+-- ============================================================
+
+function KingV1Hub:SelectTab(name)
+    self:_SelectTab(name)
+end
+
+function KingV1Hub:GetActiveTab()
+    return self.ActiveTab
+end
+
+function KingV1Hub:Shutdown()
+    if self.ScreenGui and self.ScreenGui.Parent then
+        self.ScreenGui:Destroy()
+    end
+    for _, conn in ipairs(self.Connections) do
+        if conn then pcall(function() conn:Disconnect() end) end
+    end
+    print("[KINGV1 HUB] GUI Shutdown Complete")
+end
+
+function KingV1Hub:SetTheme(newTheme)
+    self.Theme = setmetatable(newTheme, { __index = KingV1Hub.DefaultTheme })
+end
+
+function KingV1Hub:GetMainFrame()
+    return self.MainFrame
+end
+
+function KingV1Hub:SetVisible(visible)
+    self.Visible = visible
+    self.MainFrame.Visible = visible
+end
+
+return KingV1Hub
