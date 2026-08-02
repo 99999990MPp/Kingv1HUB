@@ -172,7 +172,7 @@ function KingV1Hub:_CreateTitleBar()
     self.MinBtn = MinBtn
     
     local CloseBtn = Instance.new("TextButton", TitleBar)
-    CloseBtn.Text = "X"
+    CloseBtn.Text = "✕"
     CloseBtn.Size = UDim2.new(0, 32, 0, 32)
     CloseBtn.Position = UDim2.new(1, -38, 0.5, -16)
     CloseBtn.BackgroundColor3 = self.Theme.Close
